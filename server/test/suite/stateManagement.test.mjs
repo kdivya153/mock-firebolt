@@ -92,22 +92,25 @@ test(`stateManagement.getState for invalid user works properly`, () => {
 
 });
 
-test(`stateManagement.getState works properly for global and group`, () => {
+test(`stateManagement.getState works properly for global and group when there is no group level override`, () => {
   stateManagement.testExports.state["global"] = {
-    global: {
-      mode: "DEFAULT",
-    },
-    methods: {
-      "account.id": {
-        "result": "A111",
-        "scope" :"global"
-      },
-    }
-  };
+    methods: { 'account.id': { result: 'A111', scope: 'global' } }
+  }
+  stateManagement.addUser("~B")
+  const expectedResult2 =
+  {
+    global: { mode: 'DEFAULT', latency: { min: 0, max: 0 } },
+    methods: { 'account.id': { result: 'A111', scope: 'global' } },
+    scratch: {},
+    sequenceState: {}
+  }
+  const result2 = stateManagement.getState("~B");
+  expect(result2).toEqual(expectedResult2);
+});
+
+test(`stateManagement.getState works properly for group and user when there is no user level override`, () => {
   stateManagement.testExports.state["~A"] = {
-    global: {
-      mode: "DEFAULT",
-    },
+    global: { mode: 'DEFAULT', latency: { min: 0, max: 0 } },
     methods: {
       "account.id": {
         "result": "A222",
@@ -234,6 +237,56 @@ test(`stateManagement.updateState with scope works properly`, () => {
   const spy1 = jest.spyOn(logger, "info");
   stateManagement.updateState(userId1, newState, scope);
   expect(spy1).toHaveBeenCalled();
+});
+
+test(`stateManagement.updateState and stateManagement.getState works properly for global and group when there is a group level override`, () => {
+  stateManagement.testExports.state["global"] = {
+    global: { mode: 'DEFAULT', latency: { min: 0, max: 0 } },
+    methods: {},
+    scope: "global"
+  }
+  stateManagement.addUser("~B")
+  const userId1 = "~B"
+  const newState = {
+    scope: "group"
+  }
+  stateManagement.updateState(userId1, newState);
+  const result2 = stateManagement.getState("~B");
+  const expectedResult2 = {
+    global: { mode: 'DEFAULT', latency: { min: 0, max: 0 } },
+    methods: {},
+    scope: "group",
+    scratch: {},
+    sequenceState: {}
+  }
+
+  expect(result2).toEqual(expectedResult2);
+});
+
+test(`stateManagement.updateState and stateManagement.getState works properly for group and user when there is a user level override`, () => {
+  stateManagement.testExports.state["~B"] = {
+    global: { mode: 'DEFAULT', latency: { min: 0, max: 0 } },
+    methods: {},
+    scope: "group",
+    scratch: {},
+    sequenceState: {}
+  }
+  stateManagement.addUser("123~B")
+  const userId1 = "123~B"
+  const newState = {
+    scope: "user"
+  };
+  stateManagement.updateState(userId1, newState);
+  const result2 = stateManagement.getState("123~B");
+  const expectedResult2 = {
+    global: { mode: 'DEFAULT', latency: { min: 0, max: 0 } },
+    methods: {},
+    scope: "user",
+    scratch: {},
+    sequenceState: {}
+  }
+
+  expect(result2).toEqual(expectedResult2);
 });
 
 test(`stateManagement.revertState works properly`, () => {
